@@ -1,0 +1,40 @@
+syntax = "proto3";
+
+package microservice;
+option go_package = ".";
+
+service BankService {
+  rpc CreateBank(CreateBankRequest) returns (CreateBankResponse) {}
+  rpc CreateCustomer(CreateCustomerRequest) returns (CreateCustomerResponse) {}
+  rpc CreateAccount(CreateAccountRequest) returns (CreateAccountResponse) {}
+  rpc Withdraw(WithdrawRequest) returns (WithdrawResponse) {}
+}
+
+message CreateBankRequest {
+  string name = 1;
+}
+
+message CreateBankResponse {}
+
+message CreateCustomerRequest {
+  string userName = 1;
+  int64 initMoney = 2;
+}
+
+message CreateCustomerResponse {}
+
+message CreateAccountRequest {
+  string customerUserName = 1;
+  string bankName = 2;
+  int64 initDeposit = 3;
+}
+
+message CreateAccountResponse {}
+
+message WithdrawRequest {
+  string customerUserName = 1;
+  string accountNumber = 2;
+  int64 amount = 3;
+}
+
+message WithdrawResponse {}

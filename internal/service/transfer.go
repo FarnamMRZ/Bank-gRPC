@@ -1,7 +1,7 @@
 package service
 
 import (
-	"bank/internal/repository"
+	"github.com/FarnamMRZ/Bank-gRPC/internal/repository"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -44,17 +44,7 @@ func (ts *transferService) Withdraw(userName, accountNumber string, amount int64
 		return status.Errorf(codes.FailedPrecondition, "boro baba pool nadari!")
 	}
 
-	err = ts.dao.NewAccountQuery().UpdateAccount(userName, accountNumber, *accountAmount-amount)
-	if err != nil {
-		return err
-	}
-
-	safeAmount, err := ts.dao.NewCustomerQuery().GetSafeAmount(userName)
-	if err != nil {
-		return err
-	}
-
-	err = ts.dao.NewCustomerQuery().UpdateSafeAmount(userName, *safeAmount+amount)
+	err = ts.dao.NewAccountQuery().Withdraw(userName, userName, accountNumber, amount)
 	if err != nil {
 		return err
 	}

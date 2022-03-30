@@ -1,8 +1,9 @@
 package repository
 
 import (
-	"bank/internal/datastruct"
-	"gopkg.in/mgo.v2"
+	"context"
+	"github.com/FarnamMRZ/Bank-gRPC/internal/datastruct"
+	"go.mongodb.org/mongo-driver/mongo"
 	"gopkg.in/mgo.v2/bson"
 )
 
@@ -12,22 +13,22 @@ type BankQuery interface {
 }
 
 type bankQuery struct {
-	db *mgo.Session
+	db *mongo.Client
 }
 
 func (bq *bankQuery) CreateBank(bankName string) error {
 	bank := datastruct.Bank{Name: bankName}
-	err := bq.db.DB("bank").C("banks").Insert(bank)
+	_, err := bq.db.Database("bank").Collection("banks").InsertOne(context.TODO(), bank)
 	return err
 }
 
 func (bq *bankQuery) BankExist(bankName string) (bool, error) {
-	count, err := bq.db.DB("bank").C("banks").Find(bson.M{"name": bankName}).Count()
-	if err != nil {
-		return false, err
-	}
-	if count < 1 {
-		return false, nil
+	ss := bq.db.Database("bank").Collection("banks").FindOne(context.TODO(), bson.M{"name": bankName})
+	if ss.Err() != nil {
+		if ss.Err() == mongo.ErrNoDocuments {
+			return false, nil
+		}
+		return false, ss.Err()
 	}
 	return true, nil
 }

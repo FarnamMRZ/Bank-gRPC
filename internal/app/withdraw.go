@@ -1,8 +1,8 @@
 package app
 
 import (
-	pb "bank/pkg"
 	"context"
+	pb "github.com/FarnamMRZ/Bank-gRPC/pkg"
 )
 
 func (s *server) Withdraw(ctx context.Context, in *pb.WithdrawRequest) (*pb.WithdrawResponse, error) {

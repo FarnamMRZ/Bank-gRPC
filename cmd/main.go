@@ -1,14 +1,14 @@
 package main
 
 import (
-	"bank/internal/service"
+	"github.com/FarnamMRZ/Bank-gRPC/internal/service"
 	"google.golang.org/grpc"
 	"log"
 	"net"
 
-	"bank/internal/app"
-	"bank/internal/repository"
-	pb "bank/pkg"
+	"github.com/FarnamMRZ/Bank-gRPC/internal/app"
+	"github.com/FarnamMRZ/Bank-gRPC/internal/repository"
+	pb "github.com/FarnamMRZ/Bank-gRPC/pkg"
 )
 
 func main() {
@@ -18,12 +18,13 @@ func main() {
 	}
 
 	// Register dao
-	s, err := repository.NewDB()
+	c, err := repository.NewDB()
 	if err != nil {
 		log.Fatalf("Faild to connect to database: %v", err)
 	}
+	defer repository.CloseDB(c)
 
-	dao := repository.NewDAO(s)
+	dao := repository.NewDAO(c)
 
 	// Register all services
 	bankService := service.NewBankService(dao)

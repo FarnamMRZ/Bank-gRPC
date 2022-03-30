@@ -1,11 +1,22 @@
 package repository
 
 import (
-	"gopkg.in/mgo.v2"
+	"context"
+	"go.mongodb.org/mongo-driver/mongo/options"
+	"log"
+
+	"go.mongodb.org/mongo-driver/mongo"
 )
 
-func NewDB() (*mgo.Session, error) {
-	return mgo.Dial("localhost")
+func NewDB() (*mongo.Client, error) {
+	return mongo.Connect(context.TODO(), options.Client().ApplyURI("mongodb://localhost"))
+}
+
+func CloseDB(client *mongo.Client) {
+	err := client.Disconnect(context.TODO())
+	if err != nil {
+		log.Fatalf("Faild to disconnect from database: %v", err)
+	}
 }
 
 type DAO interface {
@@ -15,11 +26,13 @@ type DAO interface {
 }
 
 type dao struct {
-	db *mgo.Session
+	db *mongo.Client
 }
 
-func NewDAO(s *mgo.Session) DAO {
-	return &dao{s}
+var txnOpts = options.Transaction()
+
+func NewDAO(c *mongo.Client) DAO {
+	return &dao{c}
 }
 
 func (d *dao) NewBankQuery() BankQuery {

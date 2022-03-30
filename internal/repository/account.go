@@ -1,9 +1,10 @@
 package repository
 
 import (
-	"bank/internal/datastruct"
-	"gopkg.in/mgo.v2"
-	"gopkg.in/mgo.v2/bson"
+	"context"
+	"github.com/FarnamMRZ/Bank-gRPC/internal/datastruct"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/mongo"
 )
 
 type AccountQuery interface {
@@ -11,10 +12,11 @@ type AccountQuery interface {
 	UpdateAccount(customerUserName, accountNumber string, amount int64) error
 	GetAccountAmount(customerUserName, accountNumber string) (*int64, error)
 	AccountExist(customerUserName, accountNumber string) (bool, error)
+	Withdraw(userName, customerUserName, accountNumber string, amount int64) error
 }
 
 type accountQuery struct {
-	db *mgo.Session
+	db *mongo.Client
 }
 
 func (ac *accountQuery) CreateAccount(customerUserName, bankName, number string, amount int64) error {
@@ -25,16 +27,18 @@ func (ac *accountQuery) CreateAccount(customerUserName, bankName, number string,
 		Amount:   amount,
 	}
 
-	return ac.db.DB("bank").C("accounts").Insert(account)
+	_, err := ac.db.Database("bank").Collection("accounts").InsertOne(context.TODO(), account)
+	return err
 }
 
 func (ac *accountQuery) UpdateAccount(customerUserName, accountNumber string, amount int64) error {
-	return ac.db.DB("bank").C("accounts").Update(bson.M{"customer": customerUserName, "number": accountNumber}, bson.M{"$set": bson.M{"amount": amount}})
+	_, err := ac.db.Database("bank").Collection("accounts").UpdateOne(context.TODO(), bson.M{"customer": customerUserName, "number": accountNumber}, bson.M{"$set": bson.M{"amount": amount}})
+	return err
 }
 
 func (ac *accountQuery) GetAccountAmount(customerUserName, accountNumber string) (*int64, error) {
 	var account datastruct.Account
-	err := ac.db.DB("bank").C("accounts").Find(bson.M{"customer": customerUserName, "number": accountNumber}).One(&account)
+	err := ac.db.Database("bank").Collection("accounts").FindOne(context.TODO(), bson.M{"customer": customerUserName, "number": accountNumber}).Decode(&account)
 	if err != nil {
 		return nil, err
 	}
@@ -42,12 +46,48 @@ func (ac *accountQuery) GetAccountAmount(customerUserName, accountNumber string)
 }
 
 func (ac *accountQuery) AccountExist(customerUserName, accountNumber string) (bool, error) {
-	count, err := ac.db.DB("bank").C("accounts").Find(bson.M{"customer": customerUserName, "number": accountNumber}).Count()
+	ss := ac.db.Database("bank").Collection("accounts").FindOne(context.TODO(), bson.M{"customer": customerUserName, "number": accountNumber})
+	if ss.Err() != nil {
+		if ss.Err() == mongo.ErrNoDocuments {
+			return false, nil
+		}
+		return false, ss.Err()
+	}
+	return true, nil
+}
+
+func (ac *accountQuery) Withdraw(userName, customerUserName, accountNumber string, amount int64) error {
+	session, err := ac.db.StartSession()
 	if err != nil {
-		return false, err
+		return err
 	}
-	if count < 1 {
-		return false, nil
+	defer session.EndSession(context.Background())
+
+	callback := func(sc mongo.SessionContext) (interface{}, error) {
+		result, err := ac.db.Database("bank").Collection("accounts").UpdateOne(
+			context.TODO(),
+			bson.M{"customer": customerUserName, "number": accountNumber},
+			bson.M{"$inc": bson.M{"amount": -amount}},
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		result, err = ac.db.Database("bank").Collection("customers").UpdateOne(
+			context.TODO(),
+			bson.M{"name": userName},
+			bson.M{"$inc": bson.M{"safe": amount}},
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		return result, nil
 	}
-	return true, err
+
+	_, err = session.WithTransaction(context.Background(), callback, txnOpts)
+	if err != nil {
+		return err
+	}
+	return nil
 }

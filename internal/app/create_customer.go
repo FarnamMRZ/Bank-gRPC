@@ -1,8 +1,8 @@
 package app
 
 import (
-	pb "bank/pkg"
 	"context"
+	pb "github.com/FarnamMRZ/Bank-gRPC/pkg"
 )
 
 func (s *server) CreateCustomer(ctx context.Context, in *pb.CreateCustomerRequest) (*pb.CreateCustomerResponse, error) {

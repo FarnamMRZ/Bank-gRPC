@@ -1,7 +1,7 @@
 package service
 
 import (
-	"bank/internal/repository"
+	"github.com/FarnamMRZ/Bank-gRPC/internal/repository"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"strconv"

@@ -1,8 +1,8 @@
 package app
 
 import (
-	"bank/internal/service"
-	pb "bank/pkg"
+	"github.com/FarnamMRZ/Bank-gRPC/internal/service"
+	pb "github.com/FarnamMRZ/Bank-gRPC/pkg"
 )
 
 type server struct {
